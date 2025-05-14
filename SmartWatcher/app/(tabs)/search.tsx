@@ -6,7 +6,7 @@ import { icons } from "@/constants/icons";
 
 import useFetch from "@/services/useFetch";
 import { fetchMovies } from "@/services/api";
-// import { updateSearchCount } from "@/services/appwrite";
+import { updateSearchCount } from "@/services/appwrite";
 
 import SearchBar from "@/components/SearchBar";
 import MovieDisplayCard from "@/components/MovieCard";
@@ -30,19 +30,23 @@ const Search = () => {
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
+        console.log("Searching for:", searchQuery);
         await loadMovies();
 
-        // Call updateSearchCount only if there are results
-        // if (movies?.length! > 0 && movies?.[0]) {
-        //   await updateSearchCount(searchQuery, movies[0]);
-        // }
+        console.log("Movies fetched:", movies);
       } else {
         reset();
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]); 
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (searchQuery.trim() && movies && movies.length > 0 && movies[0]) {
+      updateSearchCount(searchQuery, movies[0]);
+    }
+  }, [movies]);
 
   return (
     <View className="flex-1 bg-primary">
@@ -64,9 +68,9 @@ const Search = () => {
           marginVertical: 16,
         }}
         contentContainerStyle={{ paddingBottom: 100 }}
-        ListHeaderComponent={ 
+        ListHeaderComponent={
           // @ts-ignore
-          <> 
+          <>
             <View className="w-full flex-row justify-center mt-20 items-center">
               <Image source={icons.logo} className="w-12 h-10" />
             </View>
