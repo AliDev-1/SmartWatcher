@@ -10,13 +10,26 @@ const client = new Client()
 const database = new Databases(client);
 
 export const updateSearchCount = async (query: string, movie: Movie) => {
+  console.log("updateSearchCount called with:", { query, movie });
+
   try {
+    console.log("Checking if search term exists:", query);
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
       Query.equal("searchTerm", query),
     ]);
+    console.log(
+      "Search results:",
+      result.documents.length > 0 ? "exists" : "not found"
+    );
 
     if (result.documents.length > 0) {
       const existingMovie = result.documents[0];
+      console.log(
+        "Updating existing document:",
+        existingMovie.$id,
+        "count:",
+        existingMovie.count
+      );
       await database.updateDocument(
         DATABASE_ID,
         COLLECTION_ID,
@@ -25,14 +38,28 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
           count: existingMovie.count + 1,
         }
       );
+      console.log("Document updated");
     } else {
-      await database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+      console.log("Creating new document with data:", {
         searchTerm: query,
         movie_id: movie.id,
         title: movie.title,
-        count: 1,
         poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
       });
+
+      const doc = await database.createDocument(
+        DATABASE_ID,
+        COLLECTION_ID,
+        ID.unique(),
+        {
+          searchTerm: query,
+          movie_id: movie.id,
+          title: movie.title,
+          count: 1,
+          poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+        }
+      );
+      console.log("Document created:", doc.$id);
     }
   } catch (error) {
     console.error("Error updating search count:", error);
@@ -41,9 +68,7 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
 };
 
 // Get top 5 trending searched movies from Appwrite by count
-export const getTrendingMovies = async (): Promise<
-  TrendingMovie[] | undefined
-> => {
+export const getTrendingMovies = async (): Promise<TrendingMovie[]> => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
       Query.limit(5),
@@ -53,6 +78,6 @@ export const getTrendingMovies = async (): Promise<
     return result.documents as unknown as TrendingMovie[];
   } catch (error) {
     console.error(error);
-    return undefined;
+    return [];
   }
 };

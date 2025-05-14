@@ -31,10 +31,7 @@ const TrendingCard = ({
           </MaskedView>
         </View>
 
-        <Text
-          className="text-sm font-bold mt-2 text-white"
-          numberOfLines={2}
-        >
+        <Text className="text-sm font-bold mt-2 text-white" numberOfLines={2}>
           {title}
         </Text>
       </TouchableOpacity>
