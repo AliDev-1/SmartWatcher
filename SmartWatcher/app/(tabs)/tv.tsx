@@ -8,33 +8,30 @@ import {
   Animated,
   Easing,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import SearchBar from "@/components/SearchBar";
 import {
-  fetchMovies,
-  fetchNowPlayingMovies,
-  fetchUpcomingMovies,
+  fetchTVShows,
+  fetchAiringTodayTVShows,
+  fetchPopularTVShows,
 } from "@/services/api";
-import MovieCard from "@/components/MovieCard";
-import { getTrendingMovies } from "@/services/appwrite";
-import TrendingCard from "@/components/TrendingCard";
-import NowPlayingCard from "@/components/NowPlayingCard";
-import UpcomingCard from "@/components/UpcomingCard";
+import TVShowCard from "@/components/TVShowCard";
+import AiringTodayCard from "@/components/AiringTodayCard";
+import PopularTVCard from "@/components/PopularTVCard";
 import SimpleAutoScroll from "@/components/SimpleAutoScroll";
 
 // Convert to class component to avoid useInsertionEffect issues
-class Index extends React.Component {
+class TVPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      allMovies: [],
+      allTVShows: [],
       totalPages: 1,
       isLoadingMore: false,
-      nowPlayingMovies: [],
-      upcomingMovies: [],
-      trendingMovies: [],
+      airingTodayTVShows: [],
+      popularTVShows: [],
       pageLoaded: false,
       loading: true,
       error: null,
@@ -54,26 +51,18 @@ class Index extends React.Component {
   loadInitialData = async () => {
     try {
       // Load all data in parallel
-      const [movieData, trendingData, nowPlaying, upcoming] = await Promise.all(
-        [
-          fetchMovies({ query: "", page: 1 }),
-          getTrendingMovies(),
-          fetchNowPlayingMovies(),
-          fetchUpcomingMovies(),
-        ]
-      );
-
-      console.log(
-        `Now playing: ${nowPlaying.length}, Upcoming: ${upcoming.length}`
-      );
+      const [tvData, airingToday, popular] = await Promise.all([
+        fetchTVShows({ query: "", page: 1 }),
+        fetchAiringTodayTVShows(),
+        fetchPopularTVShows(),
+      ]);
 
       this.setState(
         {
-          allMovies: movieData.results,
-          totalPages: movieData.total_pages,
-          trendingMovies: trendingData || [],
-          nowPlayingMovies: nowPlaying || [],
-          upcomingMovies: upcoming || [],
+          allTVShows: tvData.results,
+          totalPages: tvData.total_pages,
+          airingTodayTVShows: airingToday || [],
+          popularTVShows: popular || [],
           loading: false,
         },
         this.startAnimations
@@ -103,8 +92,8 @@ class Index extends React.Component {
     });
   };
 
-  loadMoreMovies = async () => {
-    const { isLoadingMore, currentPage, totalPages, allMovies } = this.state;
+  loadMoreTVShows = async () => {
+    const { isLoadingMore, currentPage, totalPages, allTVShows } = this.state;
 
     if (isLoadingMore || currentPage >= totalPages) return;
 
@@ -112,21 +101,21 @@ class Index extends React.Component {
 
     try {
       const nextPage = currentPage + 1;
-      const { results } = await fetchMovies({ query: "", page: nextPage });
+      const { results } = await fetchTVShows({ query: "", page: nextPage });
 
       this.setState({
-        allMovies: [...allMovies, ...results],
+        allTVShows: [...allTVShows, ...results],
         currentPage: nextPage,
         isLoadingMore: false,
       });
     } catch (error) {
-      console.error("Error loading more movies:", error);
+      console.error("Error loading more TV shows:", error);
       this.setState({ isLoadingMore: false });
     }
   };
 
   renderHeader = () => {
-    const { nowPlayingMovies, trendingMovies, upcomingMovies } = this.state;
+    const { airingTodayTVShows, popularTVShows } = this.state;
 
     return (
       <Animated.View
@@ -142,24 +131,24 @@ class Index extends React.Component {
             onPress={() => {
               this.router.push("/search");
             }}
-            placeholder="Search for a movie"
+            placeholder="Search for a TV show"
           />
         </View>
 
-        {/* Now Playing Movies */}
-        {nowPlayingMovies && nowPlayingMovies.length > 0 && (
+        {/* Airing Today TV Shows */}
+        {airingTodayTVShows && airingTodayTVShows.length > 0 && (
           <View className="mt-10">
             <Text className="text-lg text-white font-bold mb-3 px-5">
-              Now Playing in Theaters
+              Airing Today
             </Text>
             <View style={{ height: 320, overflow: "hidden" }}>
               <SimpleAutoScroll speed={0.5} direction="left">
-                {nowPlayingMovies.map((item) => (
+                {airingTodayTVShows.map((item) => (
                   <View
-                    key={`now-playing-${item.id}`}
+                    key={`airing-today-${item.id}`}
                     style={{ marginRight: 15 }}
                   >
-                    <NowPlayingCard movie={item} />
+                    <AiringTodayCard tvShow={item} />
                   </View>
                 ))}
               </SimpleAutoScroll>
@@ -167,19 +156,19 @@ class Index extends React.Component {
           </View>
         )}
 
-        {/* Trending Movies */}
-        {trendingMovies && trendingMovies.length > 0 && (
+        {/* Popular TV Shows */}
+        {popularTVShows && popularTVShows.length > 0 && (
           <View className="mt-10">
             <Text className="text-lg text-white font-bold mb-3 px-5">
-              Trending Movies
+              Popular TV Shows
             </Text>
 
             <FlatList
-              data={trendingMovies}
+              data={popularTVShows}
               renderItem={({ item, index }) => (
-                <TrendingCard movie={item} index={index} />
+                <PopularTVCard tvShow={item} index={index} />
               )}
-              keyExtractor={(item) => item.movie_id.toString()}
+              keyExtractor={(item) => item.id.toString()}
               className="mb-4 mt-3"
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -189,31 +178,9 @@ class Index extends React.Component {
           </View>
         )}
 
-        {/* Upcoming Movies */}
-        {upcomingMovies && upcomingMovies.length > 0 && (
-          <View className="mt-8">
-            <Text className="text-lg text-white font-bold mb-3 px-5">
-              Coming Soon
-            </Text>
-            <View style={{ height: 180, overflow: "hidden", marginBottom: 10 }}>
-              <SimpleAutoScroll
-                speed={0.5}
-                direction="left"
-                style={{ paddingHorizontal: 20 }}
-              >
-                {upcomingMovies.map((item) => (
-                  <View key={`upcoming-${item.id}`} style={{ marginRight: 15 }}>
-                    <UpcomingCard movie={item} />
-                  </View>
-                ))}
-              </SimpleAutoScroll>
-            </View>
-          </View>
-        )}
-
         <View className="px-5 mt-5">
           <Text className="text-lg text-white font-bold mb-3">
-            Latest Movies
+            Latest TV Shows
           </Text>
         </View>
       </Animated.View>
@@ -221,7 +188,7 @@ class Index extends React.Component {
   };
 
   render() {
-    const { loading, error, allMovies, isLoadingMore } = this.state;
+    const { loading, error, allTVShows, isLoadingMore } = this.state;
 
     return (
       <View className="flex-1 bg-primary">
@@ -243,27 +210,20 @@ class Index extends React.Component {
           </Text>
         ) : (
           <FlatList
-            data={allMovies}
-            renderItem={({ item }) => <MovieCard {...item} />}
+            data={allTVShows}
+            renderItem={({ item }) => <TVShowCard {...item} />}
             keyExtractor={(item) => item.id.toString()}
             numColumns={3}
             contentContainerStyle={{ paddingBottom: 100 }}
-            columnWrapperStyle={{
-              justifyContent: "flex-start",
-              gap: 20,
-              paddingHorizontal: 20,
-              marginBottom: 10,
-            }}
-            className="mt-2"
-            onEndReached={this.loadMoreMovies}
-            onEndReachedThreshold={0.5}
             ListHeaderComponent={this.renderHeader}
-            ListFooterComponent={
+            onEndReached={this.loadMoreTVShows}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() =>
               isLoadingMore ? (
                 <ActivityIndicator
-                  size="large"
-                  color="#0000ff"
-                  className="my-5"
+                  size="small"
+                  color="#FFFFFF"
+                  style={{ marginVertical: 20 }}
                 />
               ) : null
             }
@@ -274,8 +234,7 @@ class Index extends React.Component {
   }
 }
 
-// Wrap with useRouter for navigation
-export default function IndexWrapper(props) {
+export default function TVPageWrapper(props) {
   const router = useRouter();
-  return <Index router={router} />;
+  return <TVPage {...props} router={router} />;
 }

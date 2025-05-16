@@ -35,11 +35,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { icons } from "@/constants/icons";
 import useFetch from "@/services/useFetch";
 import {
-  fetchMovieDetails,
-  fetchMovieCredits,
-  fetchMovieVideos,
-  fetchMovieWatchProviders,
-  fetchMovieReviews,
+  fetchTVShowDetails,
+  fetchTVShowVideos,
+  fetchTVShowWatchProviders,
+  fetchTVShowReviews,
+  fetchTVShowCredits,
 } from "@/services/api";
 
 const { width, height } = Dimensions.get("screen");
@@ -59,84 +59,10 @@ const colors = {
 
 const _headerHeight = height * 0.5;
 const _headerHeightShrink = height * 0.2;
-const _tabsHeight = 50; // Reduced from 60 to make tabs slimmer
+const _tabsHeight = 50; // Slimmer tabs
 const _tabsHeightShrink = _tabsHeight;
 
 const inputRange = [0, _headerHeightShrink];
-
-// Add type definitions
-interface MovieType {
-  id: number;
-  title: string;
-  poster_path: string;
-  backdrop_path: string;
-  overview: string;
-  release_date: string;
-  runtime: number;
-  vote_average: number;
-  vote_count: number;
-  budget: number;
-  revenue: number;
-  genres: { id: number; name: string }[];
-  production_companies: { id: number; name: string }[];
-}
-
-interface CreditsType {
-  id: number;
-  cast: {
-    id: number;
-    name: string;
-    character: string;
-    profile_path: string | null;
-    order: number;
-  }[];
-  crew: {
-    id: number;
-    name: string;
-    job: string;
-    department: string;
-    profile_path: string | null;
-  }[];
-}
-
-interface HeaderProps {
-  scrollY: Animated.SharedValue<number>;
-  movie: MovieType | null;
-}
-
-interface TabsProps {
-  scrollY: Animated.SharedValue<number>;
-  activeTab: number;
-  setActiveTab: (index: number) => void;
-}
-
-interface PersonCardProps {
-  person: {
-    id: number;
-    name: string;
-    profile_path: string | null;
-    character?: string;
-    job?: string;
-  };
-}
-
-interface MovieInfoProps {
-  label: string;
-  value?: string | number | null;
-}
-
-interface VideoCardProps {
-  video: {
-    id: string;
-    key: string;
-    name: string;
-    site: string;
-    type: string;
-    official: boolean;
-    published_at: string;
-  };
-  index: number;
-}
 
 // Interface for streaming provider
 interface Provider {
@@ -176,8 +102,24 @@ const COUNTRIES = [
   { code: "IT", name: "Italy" },
 ];
 
+// TV Show Info Component
+const TVShowInfo = ({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) => (
+  <View className="mb-4">
+    <Text className="text-text font-medium text-sm">{label}</Text>
+    <Text className="text-white font-medium text-sm mt-1">
+      {value || "N/A"}
+    </Text>
+  </View>
+);
+
 // Header Component
-const Header = ({ scrollY, movie }: HeaderProps) => {
+const Header = ({ scrollY, tvShow }) => {
   const router = useRouter();
 
   const stylez = useAnimatedStyle(() => {
@@ -212,9 +154,9 @@ const Header = ({ scrollY, movie }: HeaderProps) => {
     };
   });
 
-  const backdropPath = movie?.backdrop_path
-    ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
-    : `https://image.tmdb.org/t/p/original${movie?.poster_path}`;
+  const backdropPath = tvShow?.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${tvShow.backdrop_path}`
+    : `https://image.tmdb.org/t/p/original${tvShow?.poster_path}`;
 
   return (
     <Animated.View
@@ -246,24 +188,27 @@ const Header = ({ scrollY, movie }: HeaderProps) => {
 
       <Animated.View style={headerTextStyle} className="px-5 pb-8">
         <Text className="text-white font-bold text-4xl" numberOfLines={2}>
-          {movie?.title}
+          {tvShow?.name}
         </Text>
 
         <View className="flex-row items-center gap-x-2 mt-2">
           <Text className="text-white text-sm">
-            {movie?.release_date?.split("-")[0]} • {movie?.runtime}m
+            {tvShow?.first_air_date?.split("-")[0]}
+            {tvShow?.status === "Ended"
+              ? ` - ${tvShow?.last_air_date?.split("-")[0]}`
+              : " - Present"}
           </Text>
 
           <View className="flex-row items-center bg-ratingBox px-2 py-1 rounded-md gap-x-1">
             <Image source={icons.star} className="size-4" />
             <Text className="text-white font-bold text-sm">
-              {Math.round(movie?.vote_average ?? 0)}/10
+              {Math.round(tvShow?.vote_average ?? 0)}/10
             </Text>
           </View>
         </View>
 
         <View className="flex-row flex-wrap gap-1 mt-2">
-          {movie?.genres?.map((genre) => (
+          {tvShow?.genres?.map((genre) => (
             <View
               key={genre.id}
               className="bg-secondary/70 px-3 py-1 rounded-full"
@@ -278,9 +223,9 @@ const Header = ({ scrollY, movie }: HeaderProps) => {
 };
 
 // Tabs Component
-const tabs = ["Details", "Cast & Crew", "Videos", "Where to Watch", "Reviews"];
+const tabs = ["Details", "Cast & Crew", "Reviews", "Videos", "Where to Watch"];
 
-const Tabs = ({ scrollY, activeTab, setActiveTab }: TabsProps) => {
+const Tabs = ({ scrollY, activeTab, setActiveTab }) => {
   const stylez = useAnimatedStyle(() => {
     return {
       height: _tabsHeight,
@@ -337,73 +282,35 @@ const Tabs = ({ scrollY, activeTab, setActiveTab }: TabsProps) => {
   );
 };
 
-// Movie Info Component
-const MovieInfo = ({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | number | null;
-}) => (
-  <View className="mb-4">
-    <Text className="text-text font-medium text-sm">{label}</Text>
-    <Text className="text-white font-medium text-sm mt-1">
-      {value || "N/A"}
-    </Text>
-  </View>
-);
-
-// Cast Card Component
-const CastCard = ({ person }) => {
-  const router = useRouter();
+// Provider Card Component
+const ProviderCard = ({ provider, link }) => {
+  const handlePress = () => {
+    if (link) {
+      Linking.openURL(link);
+    }
+  };
 
   return (
     <TouchableOpacity
-      className="mr-4 w-24"
-      onPress={() => router.push(`/person/${person.id}`)}
+      className="mr-4 items-center"
+      onPress={handlePress}
+      activeOpacity={0.7}
     >
-      <Image
-        source={{
-          uri: person.profile_path
-            ? `https://image.tmdb.org/t/p/w185${person.profile_path}`
-            : "https://via.placeholder.com/185x278/151312/9CA4AB?text=No+Image",
-        }}
-        className="w-24 h-32 rounded-md"
-        resizeMode="cover"
-      />
-      <Text className="text-white text-xs font-bold mt-1" numberOfLines={1}>
-        {person.name}
-      </Text>
-      <Text className="text-text text-xs" numberOfLines={1}>
-        {person.character}
-      </Text>
-    </TouchableOpacity>
-  );
-};
-
-// Crew Card Component
-const CrewCard = ({ person }) => {
-  const router = useRouter();
-
-  return (
-    <TouchableOpacity
-      className="mr-4 w-24"
-      onPress={() => router.push(`/person/${person.id}`)}
-    >
-      <Image
-        source={{
-          uri: person.profile_path
-            ? `https://image.tmdb.org/t/p/w185${person.profile_path}`
-            : "https://via.placeholder.com/185x278/151312/9CA4AB?text=No+Image",
-        }}
-        className="w-24 h-32 rounded-md"
-        resizeMode="cover"
-      />
-      <Text className="text-white text-xs font-bold mt-1" numberOfLines={1}>
-        {person.name}
-      </Text>
-      <Text className="text-text text-xs" numberOfLines={1}>
-        {person.job}
+      <Animated.View
+        entering={FadeIn.delay(100).springify()}
+        className="w-16 h-16 rounded-lg mb-1 overflow-hidden"
+        style={{ backgroundColor: colors.secondary }}
+      >
+        <Image
+          source={{
+            uri: `https://image.tmdb.org/t/p/original${provider.logo_path}`,
+          }}
+          className="w-16 h-16"
+          resizeMode="contain"
+        />
+      </Animated.View>
+      <Text className="text-white text-xs text-center" numberOfLines={2}>
+        {provider.provider_name}
       </Text>
     </TouchableOpacity>
   );
@@ -494,40 +401,6 @@ const VideoCard = ({ video, index }) => {
         </View>
       </TouchableOpacity>
     </Animated.View>
-  );
-};
-
-// Provider Card Component
-const ProviderCard = ({ provider, link }) => {
-  const handlePress = () => {
-    if (link) {
-      Linking.openURL(link);
-    }
-  };
-
-  return (
-    <TouchableOpacity
-      className="mr-4 items-center"
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <Animated.View
-        entering={FadeIn.delay(100).springify()}
-        className="w-16 h-16 rounded-lg mb-1 overflow-hidden"
-        style={{ backgroundColor: colors.secondary }}
-      >
-        <Image
-          source={{
-            uri: `https://image.tmdb.org/t/p/original${provider.logo_path}`,
-          }}
-          className="w-16 h-16"
-          resizeMode="contain"
-        />
-      </Animated.View>
-      <Text className="text-white text-xs text-center" numberOfLines={2}>
-        {provider.provider_name}
-      </Text>
-    </TouchableOpacity>
   );
 };
 
@@ -768,8 +641,64 @@ const RegionModal = ({
   );
 };
 
+// Cast Card Component
+const CastCard = ({ person }) => {
+  const router = useRouter();
+
+  return (
+    <TouchableOpacity
+      className="mr-4 w-24"
+      onPress={() => router.push(`/person/${person.id}`)}
+    >
+      <Image
+        source={{
+          uri: person.profile_path
+            ? `https://image.tmdb.org/t/p/w185${person.profile_path}`
+            : "https://via.placeholder.com/185x278/151312/9CA4AB?text=No+Image",
+        }}
+        className="w-24 h-32 rounded-md"
+        resizeMode="cover"
+      />
+      <Text className="text-white text-xs font-bold mt-1" numberOfLines={1}>
+        {person.name}
+      </Text>
+      <Text className="text-text text-xs" numberOfLines={1}>
+        {person.character}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+// Crew Card Component
+const CrewCard = ({ person }) => {
+  const router = useRouter();
+
+  return (
+    <TouchableOpacity
+      className="mr-4 w-24"
+      onPress={() => router.push(`/person/${person.id}`)}
+    >
+      <Image
+        source={{
+          uri: person.profile_path
+            ? `https://image.tmdb.org/t/p/w185${person.profile_path}`
+            : "https://via.placeholder.com/185x278/151312/9CA4AB?text=No+Image",
+        }}
+        className="w-24 h-32 rounded-md"
+        resizeMode="cover"
+      />
+      <Text className="text-white text-xs font-bold mt-1" numberOfLines={1}>
+        {person.name}
+      </Text>
+      <Text className="text-text text-xs" numberOfLines={1}>
+        {person.job}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 // Main Component
-const Details = () => {
+const TVShowDetails = () => {
   const { id } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedRegion, setSelectedRegion] = useState("US");
@@ -778,24 +707,24 @@ const Details = () => {
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const scrollY = useSharedValue(0);
 
-  const { data: movie, loading } = useFetch(() =>
-    fetchMovieDetails(id as string)
-  );
-
-  const { data: credits, loading: creditsLoading } = useFetch(() =>
-    fetchMovieCredits(id as string)
+  const { data: tvShow, loading } = useFetch(() =>
+    fetchTVShowDetails(id as string)
   );
 
   const { data: videos, loading: videosLoading } = useFetch(() =>
-    fetchMovieVideos(id as string)
+    fetchTVShowVideos(id as string)
   );
 
   const { data: watchProviders, loading: providersLoading } = useFetch(() =>
-    fetchMovieWatchProviders(id as string)
+    fetchTVShowWatchProviders(id as string)
   );
 
   const { data: reviews, loading: reviewsLoading } = useFetch(() =>
-    fetchMovieReviews(id as string)
+    fetchTVShowReviews(id as string)
+  );
+
+  const { data: credits, loading: creditsLoading } = useFetch(() =>
+    fetchTVShowCredits(id as string)
   );
 
   const onScroll = useAnimatedScrollHandler((ev) => {
@@ -809,31 +738,6 @@ const Details = () => {
       </SafeAreaView>
     );
   }
-
-  const directors =
-    credits?.crew?.filter((person) => person.job === "Director") || [];
-  const writers =
-    credits?.crew?.filter(
-      (person) =>
-        person.department === "Writing" ||
-        person.job === "Screenplay" ||
-        person.job === "Writer"
-    ) || [];
-
-  const importantCrew = [...directors, ...writers.slice(0, 2)];
-  const cast = credits?.cast?.slice(0, 20) || [];
-  const keyProductionCrew =
-    credits?.crew
-      ?.filter((person) =>
-        [
-          "Director",
-          "Producer",
-          "Director of Photography",
-          "Production Design",
-          "Costume Design",
-        ].includes(person.job)
-      )
-      .slice(0, 10) || [];
 
   const trailers =
     videos?.results?.filter(
@@ -869,6 +773,24 @@ const Details = () => {
     rentProviders.length > 0 ||
     buyProviders.length > 0;
 
+  // Extract cast and crew
+  const cast = credits?.cast?.slice(0, 20) || [];
+  const keyProductionCrew =
+    credits?.crew
+      ?.filter((person) =>
+        [
+          "Director",
+          "Producer",
+          "Executive Producer",
+          "Director of Photography",
+          "Production Design",
+          "Costume Design",
+          "Creator",
+          "Writer",
+        ].includes(person.job)
+      )
+      .slice(0, 10) || [];
+
   const openReviewModal = (review) => {
     setSelectedReview(review);
     setReviewModalVisible(true);
@@ -879,7 +801,7 @@ const Details = () => {
   };
 
   // Don't show the trailer button when Videos tab is active
-  const showTrailerButton = activeTab !== 2;
+  const showTrailerButton = activeTab !== 1;
 
   return (
     <View className="flex-1 bg-primary">
@@ -910,60 +832,57 @@ const Details = () => {
         {activeTab === 0 && (
           // Details Tab
           <View className="px-5 py-4">
-            {importantCrew.length > 0 && (
-              <Text className="text-white text-sm mb-1">
-                {importantCrew.map(
-                  (p, i) =>
-                    `${p.job}: ${p.name}${
-                      i < importantCrew.length - 1 ? " • " : ""
-                    }`
-                )}
-              </Text>
-            )}
-
             <Text className="text-white text-base mt-4 mb-5 leading-6">
-              {movie?.overview}
+              {tvShow?.overview}
             </Text>
 
             <View className="flex-row flex-wrap">
               <View className="w-1/2 pr-2">
-                <MovieInfo
-                  label="Budget"
-                  value={
-                    movie?.budget && movie.budget > 0
-                      ? `$${(movie.budget / 1_000_000).toFixed(1)} million`
-                      : "N/A"
-                  }
+                <TVShowInfo
+                  label="First Air Date"
+                  value={tvShow?.first_air_date}
                 />
               </View>
               <View className="w-1/2 pl-2">
-                <MovieInfo
-                  label="Revenue"
-                  value={
-                    movie?.revenue && movie.revenue > 0
-                      ? `$${(movie.revenue / 1_000_000).toFixed(1)} million`
-                      : "N/A"
-                  }
+                <TVShowInfo
+                  label="Last Air Date"
+                  value={tvShow?.last_air_date || "Ongoing"}
                 />
               </View>
 
               <View className="w-1/2 pr-2">
-                <MovieInfo
-                  label="Release Date"
-                  value={movie?.release_date || "N/A"}
+                <TVShowInfo
+                  label="Number of Seasons"
+                  value={tvShow?.number_of_seasons}
                 />
               </View>
               <View className="w-1/2 pl-2">
-                <MovieInfo
-                  label="Runtime"
-                  value={movie?.runtime ? `${movie.runtime} minutes` : "N/A"}
+                <TVShowInfo
+                  label="Number of Episodes"
+                  value={tvShow?.number_of_episodes}
                 />
               </View>
             </View>
 
-            <MovieInfo
-              label="Production Companies"
-              value={movie?.production_companies?.map((c) => c.name).join(", ")}
+            <TVShowInfo
+              label="Created By"
+              value={
+                tvShow?.created_by?.map((c) => c.name).join(" • ") || "N/A"
+              }
+            />
+
+            <TVShowInfo
+              label="Networks"
+              value={tvShow?.networks?.map((n) => n.name).join(" • ") || "N/A"}
+            />
+
+            <TVShowInfo
+              label="Episode Runtime"
+              value={
+                tvShow?.episode_run_time?.length > 0
+                  ? `${tvShow.episode_run_time[0]} minutes`
+                  : "N/A"
+              }
             />
           </View>
         )}
@@ -979,6 +898,10 @@ const Details = () => {
             >
               {creditsLoading ? (
                 <ActivityIndicator color={colors.accent} size="small" />
+              ) : cast.length === 0 ? (
+                <Text className="text-tabText text-base mb-5">
+                  No cast information available.
+                </Text>
               ) : (
                 cast.map((person) => (
                   <CastCard key={`cast-${person.id}`} person={person} />
@@ -996,6 +919,10 @@ const Details = () => {
             >
               {creditsLoading ? (
                 <ActivityIndicator color={colors.accent} size="small" />
+              ) : keyProductionCrew.length === 0 ? (
+                <Text className="text-tabText text-base mb-5">
+                  No crew information available.
+                </Text>
               ) : (
                 keyProductionCrew.map((person) => (
                   <CrewCard
@@ -1009,6 +936,50 @@ const Details = () => {
         )}
 
         {activeTab === 2 && (
+          // Reviews Tab
+          <View className="px-5 py-4">
+            {reviewsLoading ? (
+              <View className="items-center justify-center pt-10">
+                <ActivityIndicator color={colors.accent} size="large" />
+              </View>
+            ) : !reviews?.results || reviews.results.length === 0 ? (
+              <View className="items-center justify-center pt-10">
+                <Feather
+                  name="message-square"
+                  size={48}
+                  color={colors.tabText}
+                />
+                <Text className="text-tabText text-base mt-3">
+                  No reviews available
+                </Text>
+              </View>
+            ) : (
+              <View>
+                <Text className="text-white font-bold text-xl mb-4">
+                  User Reviews
+                </Text>
+
+                {reviews.results.map((review, index) => (
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    index={index}
+                    onPress={openReviewModal}
+                  />
+                ))}
+
+                <View className="mt-2 mb-8 flex items-center">
+                  <Text className="text-text text-sm">
+                    {reviews.total_results} review
+                    {reviews.total_results !== 1 ? "s" : ""} in total
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === 3 && (
           // Videos Tab
           <View className="px-5 py-4">
             {videosLoading ? (
@@ -1073,7 +1044,7 @@ const Details = () => {
           </View>
         )}
 
-        {activeTab === 3 && (
+        {activeTab === 4 && (
           // Where to Watch Tab
           <View className="px-5 py-4">
             {providersLoading ? (
@@ -1212,54 +1183,13 @@ const Details = () => {
             )}
           </View>
         )}
-
-        {activeTab === 4 && (
-          // Reviews Tab
-          <View className="px-5 py-4">
-            {reviewsLoading ? (
-              <View className="items-center justify-center pt-10">
-                <ActivityIndicator color={colors.accent} size="large" />
-              </View>
-            ) : !reviews?.results || reviews.results.length === 0 ? (
-              <View className="items-center justify-center pt-10">
-                <Feather
-                  name="message-square"
-                  size={48}
-                  color={colors.tabText}
-                />
-                <Text className="text-tabText text-base mt-3">
-                  No reviews available
-                </Text>
-              </View>
-            ) : (
-              <View>
-                <Text className="text-white font-bold text-xl mb-4">
-                  User Reviews
-                </Text>
-
-                {reviews.results.map((review, index) => (
-                  <ReviewCard
-                    key={review.id}
-                    review={review}
-                    index={index}
-                    onPress={openReviewModal}
-                  />
-                ))}
-
-                <View className="mt-2 mb-8 flex items-center">
-                  <Text className="text-text text-sm">
-                    {reviews.total_results} review
-                    {reviews.total_results !== 1 ? "s" : ""} in total
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        )}
       </Animated.ScrollView>
 
-      <View style={{ position: "absolute", width: "100%" }}>
-        <Header scrollY={scrollY} movie={movie} />
+      <View
+        style={{ position: "absolute", width: "100%" }}
+        className="bg-primary"
+      >
+        <Header scrollY={scrollY} tvShow={tvShow} />
         <Tabs
           scrollY={scrollY}
           activeTab={activeTab}
@@ -1267,7 +1197,7 @@ const Details = () => {
         />
       </View>
 
-      {showTrailerButton && (
+      {showTrailerButton && hasVideos && (
         <TouchableOpacity
           className="absolute bottom-5 left-0 right-0 mx-5 bg-accent rounded-lg py-3.5 flex flex-row items-center justify-center z-50"
           style={{
@@ -1307,4 +1237,4 @@ const Details = () => {
   );
 };
 
-export default Details;
+export default TVShowDetails;

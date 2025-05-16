@@ -1,8 +1,8 @@
 import { View, Text, ImageBackground, Image } from "react-native";
 import React from "react";
 import { Tabs } from "expo-router";
-import { icons } from "@/constants/icons"
-import { images } from "@/constants/images"
+import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
 
 // Function to render the tab icon
 function TabIcon({ focused, icon, title }: any) {
@@ -12,9 +12,9 @@ function TabIcon({ focused, icon, title }: any) {
         source={images.highlight}
         className="flex flex-row w-full flex-1 min-w-[112px] min-h-16 mt-4 justify-center items-center rounded-full overflow-hidden"
       >
-        <Image source={icon} tintColor="#151312" className="size-5" /> 
+        <Image source={icon} tintColor="#151312" className="size-5" />
         <Text className="text-secondary text-base font-semibold ml-2">
-          {title} 
+          {title}
         </Text>
       </ImageBackground>
     );
@@ -26,8 +26,6 @@ function TabIcon({ focused, icon, title }: any) {
     </View>
   );
 }
-
-
 
 const _layout = () => {
   return (
@@ -56,10 +54,20 @@ const _layout = () => {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Movies",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} title="Home" />
+            <TabIcon focused={focused} icon={icons.home} title="Movies" />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tv"
+        options={{
+          title: "TV Shows",
+          headerShown: false,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} icon={icons.search} title="TV" />
           ),
         }}
       />
