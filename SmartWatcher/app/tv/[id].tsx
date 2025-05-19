@@ -41,6 +41,7 @@ import {
   fetchTVShowReviews,
   fetchTVShowCredits,
 } from "@/services/api";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -208,7 +209,7 @@ const Header = ({ scrollY, tvShow }) => {
         </View>
 
         <View className="flex-row flex-wrap gap-1 mt-2">
-          {tvShow?.genres?.map((genre) => (
+          {tvShow?.genres?.map((genre: any) => (
             <View
               key={genre.id}
               className="bg-secondary/70 px-3 py-1 rounded-full"
@@ -733,7 +734,10 @@ const TVShowDetails = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="bg-primary flex-1 items-center justify-center">
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: "transparent" }}
+        className="items-center justify-center"
+      >
         <ActivityIndicator color={colors.accent} size="large" />
       </SafeAreaView>
     );
@@ -804,8 +808,14 @@ const TVShowDetails = () => {
   const showTrailerButton = activeTab !== 1;
 
   return (
-    <View className="flex-1 bg-primary">
+    <View className="flex-1">
       <StatusBar style="light" />
+      <AnimatedBackground
+        count={7}
+        hue="blue"
+        intensity={40}
+        duration={30000}
+      />
 
       <FullReviewModal
         review={selectedReview}
@@ -831,7 +841,7 @@ const TVShowDetails = () => {
       >
         {activeTab === 0 && (
           // Details Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             <Text className="text-white text-base mt-4 mb-5 leading-6">
               {tvShow?.overview}
             </Text>
@@ -889,7 +899,7 @@ const TVShowDetails = () => {
 
         {activeTab === 1 && (
           // Cast & Crew Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             <Text className="text-white font-bold text-lg mb-3">Cast</Text>
             <Animated.ScrollView
               horizontal
@@ -937,7 +947,7 @@ const TVShowDetails = () => {
 
         {activeTab === 2 && (
           // Reviews Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {reviewsLoading ? (
               <View className="items-center justify-center pt-10">
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -981,7 +991,7 @@ const TVShowDetails = () => {
 
         {activeTab === 3 && (
           // Videos Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {videosLoading ? (
               <View className="items-center justify-center pt-10">
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -1046,7 +1056,7 @@ const TVShowDetails = () => {
 
         {activeTab === 4 && (
           // Where to Watch Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {providersLoading ? (
               <View className="items-center justify-center py-10">
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -1185,10 +1195,7 @@ const TVShowDetails = () => {
         )}
       </Animated.ScrollView>
 
-      <View
-        style={{ position: "absolute", width: "100%" }}
-        className="bg-primary"
-      >
+      <View style={{ position: "absolute", width: "100%" }}>
         <Header scrollY={scrollY} tvShow={tvShow} />
         <Tabs
           scrollY={scrollY}

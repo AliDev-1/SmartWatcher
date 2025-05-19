@@ -2,11 +2,15 @@
 interface Movie {
   id: number;
   poster_path: string;
-  title: string;
+  title?: string;
+  name?: string;
   vote_average: number;
-  release_date: string;
+  release_date?: string;
+  first_air_date?: string;
   overview: string;
   backdrop_path: string;
+  media_type?: string;
+  popularity: number;
 }
 
 interface MovieDetails {
@@ -243,7 +247,7 @@ export const fetchMovies = async ({
   page?: number;
 }): Promise<{ results: Movie[]; total_pages: number }> => {
   const endpoint = query
-    ? `${TMDB_CONFIG.BASE_URL}/search/movie?query=${encodeURIComponent(
+    ? `${TMDB_CONFIG.BASE_URL}/search/multi?query=${encodeURIComponent(
         query
       )}&page=${page}`
     : `${TMDB_CONFIG.BASE_URL}/discover/movie?sort_by=popularity.desc&page=${page}`;
@@ -483,8 +487,16 @@ export const fetchTVShowDetails = async (
 
 export const fetchAiringTodayTVShows = async (): Promise<TVShow[]> => {
   try {
+    // Get current date in YYYY-MM-DD format
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const formattedDate = `${year}-${month}-${day}`;
+
+    // Use discover endpoint with specific filters for US and CA shows
     const response = await fetch(
-      `${TMDB_CONFIG.BASE_URL}/tv/airing_today?language=en-US`,
+      `${TMDB_CONFIG.BASE_URL}/discover/tv?air_date.gte=${formattedDate}&air_date.lte=${formattedDate}&watch_region=US&with_origin_country=US|CA&sort_by=popularity.desc`,
       {
         method: "GET",
         headers: TMDB_CONFIG.headers,
@@ -507,21 +519,24 @@ export const fetchAiringTodayTVShows = async (): Promise<TVShow[]> => {
 
 export const fetchPopularTVShows = async (): Promise<TVShow[]> => {
   try {
-    const response = await fetch(`${TMDB_CONFIG.BASE_URL}/tv/popular`, {
-      method: "GET",
-      headers: TMDB_CONFIG.headers,
-    });
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/discover/tv?include_adult=false&language=en-US&watch_region=US&with_origin_country=US%7CCA&page=1&sort_by=vote_average.desc&vote_count.gte=200`,
+      {
+        method: "GET",
+        headers: TMDB_CONFIG.headers,
+      }
+    );
 
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch popular TV shows: ${response.statusText}`
+        `Failed to fetch top rated TV shows: ${response.statusText}`
       );
     }
 
     const data = await response.json();
     return data.results;
   } catch (error) {
-    console.error("Error fetching popular TV shows:", error);
+    console.error("Error fetching top rated TV shows:", error);
     throw error;
   }
 };
@@ -707,6 +722,30 @@ export const fetchPersonImages = async (
     return data;
   } catch (error) {
     console.error("Error fetching person images:", error);
+    throw error;
+  }
+};
+
+export const fetchMostPopularTVShows = async (): Promise<TVShow[]> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/discover/tv?include_adult=false&language=en-US&watch_region=US&with_origin_country=US|CA&page=1&sort_by=popularity.desc`,
+      {
+        method: "GET",
+        headers: TMDB_CONFIG.headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch most popular TV shows: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return data.results;
+  } catch (error) {
+    console.error("Error fetching most popular TV shows:", error);
     throw error;
   }
 };

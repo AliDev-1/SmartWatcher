@@ -41,6 +41,7 @@ import {
   fetchMovieWatchProviders,
   fetchMovieReviews,
 } from "@/services/api";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -804,7 +805,10 @@ const Details = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="bg-primary flex-1 items-center justify-center">
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: "transparent" }}
+        className="items-center justify-center"
+      >
         <ActivityIndicator color={colors.accent} size="large" />
       </SafeAreaView>
     );
@@ -882,8 +886,14 @@ const Details = () => {
   const showTrailerButton = activeTab !== 2;
 
   return (
-    <View className="flex-1 bg-primary">
+    <View className="flex-1">
       <StatusBar style="light" />
+      <AnimatedBackground
+        count={7}
+        hue="blue"
+        intensity={40}
+        duration={30000}
+      />
 
       <FullReviewModal
         review={selectedReview}
@@ -909,7 +919,7 @@ const Details = () => {
       >
         {activeTab === 0 && (
           // Details Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {importantCrew.length > 0 && (
               <Text className="text-white text-sm mb-1">
                 {importantCrew.map(
@@ -970,7 +980,7 @@ const Details = () => {
 
         {activeTab === 1 && (
           // Cast & Crew Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             <Text className="text-white font-bold text-lg mb-3">Cast</Text>
             <Animated.ScrollView
               horizontal
@@ -1010,7 +1020,7 @@ const Details = () => {
 
         {activeTab === 2 && (
           // Videos Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {videosLoading ? (
               <View className="items-center justify-center pt-10">
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -1075,7 +1085,7 @@ const Details = () => {
 
         {activeTab === 3 && (
           // Where to Watch Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {providersLoading ? (
               <View className="items-center justify-center py-10">
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -1215,7 +1225,7 @@ const Details = () => {
 
         {activeTab === 4 && (
           // Reviews Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {reviewsLoading ? (
               <View className="items-center justify-center pt-10">
                 <ActivityIndicator color={colors.accent} size="large" />

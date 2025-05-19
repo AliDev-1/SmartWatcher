@@ -24,7 +24,6 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-
 import useFetch from "@/services/useFetch";
 import {
   fetchPersonDetails,
@@ -32,6 +31,7 @@ import {
   fetchPersonTVCredits,
   fetchPersonImages,
 } from "@/services/api";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -46,6 +46,7 @@ const colors = {
   accent: "#AB8BFF",
   text: "#9CA4AB",
   white: "#ffffff",
+  muted: "#9CA4AB",
 };
 
 const _headerHeight = height * 0.4; // Smaller header for person
@@ -206,7 +207,7 @@ const Header = ({ scrollY, person }) => {
         </Text>
 
         {person?.known_for_department && (
-          <Text className="text-tabText text-base mt-1">
+          <Text className="text-muted text-base mt-1">
             {person.known_for_department} • {getGenderText(person?.gender)}
           </Text>
         )}
@@ -253,9 +254,9 @@ const CreditCard = ({ credit, type }) => {
           <Text className="text-white font-bold text-base" numberOfLines={1}>
             {title}
           </Text>
-          <Text className="text-text text-sm">{year}</Text>
+          <Text className="text-white text-sm">{year}</Text>
         </View>
-        <Text className="text-accent text-sm" numberOfLines={1}>
+        <Text className="text-white text-sm" numberOfLines={1}>
           {role}
           {type === "tv" &&
             credit.episode_count &&
@@ -329,7 +330,10 @@ const PersonDetails = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="bg-primary flex-1 items-center justify-center">
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: "transparent" }}
+        className="items-center justify-center"
+      >
         <ActivityIndicator color={colors.accent} size="large" />
       </SafeAreaView>
     );
@@ -392,8 +396,14 @@ const PersonDetails = () => {
     : [];
 
   return (
-    <View className="flex-1 bg-primary">
+    <View className="flex-1">
       <StatusBar style="light" />
+      <AnimatedBackground
+        count={7}
+        hue="blue"
+        intensity={40}
+        duration={30000}
+      />
 
       <Animated.ScrollView
         onScroll={onScroll}
@@ -406,19 +416,19 @@ const PersonDetails = () => {
       >
         {activeTab === 0 && person && (
           // Details Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             <View className="mb-6">
-              <Text className="text-accent font-bold text-lg mb-1">
+              <Text className="text-white font-bold text-lg mb-1">
                 Personal Info
               </Text>
 
               <View className="flex-row flex-wrap">
                 <View className="w-1/2 pr-2 mb-4">
-                  <Text className="text-tabText text-sm">Born</Text>
+                  <Text className="text-muted text-sm">Born</Text>
                   <Text className="text-white text-sm mt-1">
                     {formatDate(person?.birthday)}
                     {person?.birthday && (
-                      <Text className="text-tabText">
+                      <Text className="text-muted">
                         {" "}
                         ({calculateAge(person.birthday, person?.deathday)} years
                         old)
@@ -429,7 +439,7 @@ const PersonDetails = () => {
 
                 {person?.deathday && (
                   <View className="w-1/2 pl-2 mb-4">
-                    <Text className="text-tabText text-sm">Died</Text>
+                    <Text className="text-muted text-sm">Died</Text>
                     <Text className="text-white text-sm mt-1">
                       {formatDate(person.deathday)}
                     </Text>
@@ -438,7 +448,7 @@ const PersonDetails = () => {
 
                 {person?.place_of_birth && (
                   <View className="w-full mb-4">
-                    <Text className="text-tabText text-sm">Place of Birth</Text>
+                    <Text className="text-muted text-sm">Place of Birth</Text>
                     <Text className="text-white text-sm mt-1">
                       {person.place_of_birth}
                     </Text>
@@ -449,7 +459,7 @@ const PersonDetails = () => {
 
             {person?.also_known_as && person.also_known_as.length > 0 && (
               <View className="mb-6">
-                <Text className="text-accent font-bold text-lg mb-1">
+                <Text className="text-white font-bold text-lg mb-1">
                   Also Known As
                 </Text>
                 {person.also_known_as.map((name, index) => (
@@ -461,11 +471,11 @@ const PersonDetails = () => {
             )}
 
             <View className="mb-6">
-              <Text className="text-accent font-bold text-lg mb-3">
+              <Text className="text-white font-bold text-lg mb-3">
                 Biography
               </Text>
               {!person?.biography ? (
-                <Text className="text-tabText text-base italic">
+                <Text className="text-muted text-base italic">
                   No biography available.
                 </Text>
               ) : (
@@ -493,7 +503,7 @@ const PersonDetails = () => {
 
         {activeTab === 1 && (
           // Filmography Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {movieCreditsLoading || tvCreditsLoading ? (
               <View className="items-center justify-center py-10">
                 <ActivityIndicator color={colors.accent} size="large" />
@@ -507,7 +517,7 @@ const PersonDetails = () => {
                     </Text>
                     {sortedMovieCast.map((credit) => (
                       <CreditCard
-                        key={`movie-cast-${credit.id}-${credit.credit_id}`}
+                        key={`movie-cast-${credit.id}`}
                         credit={credit}
                         type="movie"
                       />
@@ -522,7 +532,7 @@ const PersonDetails = () => {
                     </Text>
                     {sortedTVCast.map((credit) => (
                       <CreditCard
-                        key={`tv-cast-${credit.id}-${credit.credit_id}`}
+                        key={`tv-cast-${credit.id}`}
                         credit={credit}
                         type="tv"
                       />
@@ -537,7 +547,7 @@ const PersonDetails = () => {
                     </Text>
                     {sortedMovieCrew.map((credit) => (
                       <CreditCard
-                        key={`movie-crew-${credit.id}-${credit.credit_id}`}
+                        key={`movie-crew-${credit.id}`}
                         credit={credit}
                         type="movie"
                       />
@@ -552,7 +562,7 @@ const PersonDetails = () => {
                     </Text>
                     {sortedTVCrew.map((credit) => (
                       <CreditCard
-                        key={`tv-crew-${credit.id}-${credit.credit_id}`}
+                        key={`tv-crew-${credit.id}`}
                         credit={credit}
                         type="tv"
                       />
@@ -565,8 +575,8 @@ const PersonDetails = () => {
                   sortedMovieCrew.length === 0 &&
                   sortedTVCrew.length === 0 && (
                     <View className="items-center justify-center py-10">
-                      <Feather name="film" size={48} color={colors.tabText} />
-                      <Text className="text-tabText text-base mt-3 text-center">
+                      <Feather name="film" size={48} color={colors.accent} />
+                      <Text className="text-muted text-base mt-3 text-center">
                         No filmography available
                       </Text>
                     </View>
@@ -578,15 +588,15 @@ const PersonDetails = () => {
 
         {activeTab === 2 && (
           // Images Tab
-          <View className="px-5 py-4">
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {imagesLoading ? (
               <View className="items-center justify-center py-10">
                 <ActivityIndicator color={colors.accent} size="large" />
               </View>
             ) : !images?.profiles || images.profiles.length === 0 ? (
               <View className="items-center justify-center py-10">
-                <Feather name="image" size={48} color={colors.tabText} />
-                <Text className="text-tabText text-base mt-3 text-center">
+                <Feather name="image" size={48} color={colors.accent} />
+                <Text className="text-muted text-base mt-3 text-center">
                   No images available
                 </Text>
               </View>
@@ -606,10 +616,7 @@ const PersonDetails = () => {
         )}
       </Animated.ScrollView>
 
-      <View
-        style={{ position: "absolute", width: "100%" }}
-        className="bg-primary"
-      >
+      <View style={{ position: "absolute", width: "100%" }}>
         <Header scrollY={scrollY} person={person} />
         <Tabs
           scrollY={scrollY}

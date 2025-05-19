@@ -23,6 +23,7 @@ import TrendingCard from "@/components/TrendingCard";
 import NowPlayingCard from "@/components/NowPlayingCard";
 import UpcomingCard from "@/components/UpcomingCard";
 import SimpleAutoScroll from "@/components/SimpleAutoScroll";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 // Convert to class component to avoid useInsertionEffect issues
 class Index extends React.Component {
@@ -224,13 +225,13 @@ class Index extends React.Component {
     const { loading, error, allMovies, isLoadingMore } = this.state;
 
     return (
-      <View className="flex-1 bg-primary">
-        <Image
-          source={images.bg}
-          className="absolute w-full z-0"
-          resizeMode="cover"
+      <View style={{ flex: 1, backgroundColor: "transparent" }}>
+        <AnimatedBackground
+          count={7}
+          hue="blue"
+          intensity={40}
+          duration={30000}
         />
-
         {loading ? (
           <ActivityIndicator
             size="large"

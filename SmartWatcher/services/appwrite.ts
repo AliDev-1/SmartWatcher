@@ -9,23 +9,31 @@ const client = new Client()
 
 const database = new Databases(client);
 
-export const updateSearchCount = async (query: string, movie: Movie) => {
-  console.log("updateSearchCount called with:", { query, movie });
+export const updateSearchCount = async (originalQuery: string, movie: any) => {
+  console.log("📊 updateSearchCount called with:", {
+    originalQuery,
+    movieId: movie.id,
+    title: movie.title || movie.name,
+  });
+
+  const movieId = movie.id.toString();
+  const movieTitle = movie.title || movie.name || "Unknown";
+  const posterPath = movie.poster_path;
 
   try {
-    console.log("Checking if search term exists:", query);
+    console.log("🔍 Checking if movie exists in database:", movieId);
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
-      Query.equal("searchTerm", query),
+      Query.equal("movie_id", movieId),
     ]);
     console.log(
-      "Search results:",
+      "📋 Search results:",
       result.documents.length > 0 ? "exists" : "not found"
     );
 
     if (result.documents.length > 0) {
       const existingMovie = result.documents[0];
       console.log(
-        "Updating existing document:",
+        "✏️ Updating existing document:",
         existingMovie.$id,
         "count:",
         existingMovie.count
@@ -36,46 +44,47 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
         existingMovie.$id,
         {
           count: existingMovie.count + 1,
+          lastSearched: new Date().toISOString(),
+          lastSearchQuery: originalQuery,
         }
       );
-      console.log("Document updated");
+      console.log("✅ Document updated");
     } else {
-      console.log("Creating new document with data:", {
-        searchTerm: query,
-        movie_id: movie.id,
-        title: movie.title,
-        poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
-      });
+      console.log("➕ Creating new document for movie:", movieTitle);
 
       const doc = await database.createDocument(
         DATABASE_ID,
         COLLECTION_ID,
         ID.unique(),
         {
-          searchTerm: query,
-          movie_id: movie.id,
-          title: movie.title,
+          movie_id: movieId,
+          title: movieTitle,
           count: 1,
-          poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+          poster_url: posterPath
+            ? `https://image.tmdb.org/t/p/w500${posterPath}`
+            : null,
+          firstSearched: new Date().toISOString(),
+          lastSearched: new Date().toISOString(),
+          lastSearchQuery: originalQuery,
         }
       );
-      console.log("Document created:", doc.$id);
+      console.log("✅ Document created:", doc.$id);
     }
   } catch (error) {
-    console.error("Error updating search count:", error);
+    console.error("❌ Error updating search count:", error);
     throw error;
   }
 };
 
 // Get top 5 trending searched movies from Appwrite by count
-export const getTrendingMovies = async (): Promise<TrendingMovie[]> => {
+export const getTrendingMovies = async () => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
       Query.limit(5),
       Query.orderDesc("count"),
     ]);
 
-    return result.documents as unknown as TrendingMovie[];
+    return result.documents;
   } catch (error) {
     console.error(error);
     return [];

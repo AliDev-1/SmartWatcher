@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Ensure backgrounds are transparent */
+:root {
+  background-color: transparent;
+}
+
+body,
+#root,
+#__next {
+  background-color: transparent;
+}

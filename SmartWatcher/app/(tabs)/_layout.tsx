@@ -1,33 +1,101 @@
-import { View, Text, ImageBackground, Image } from "react-native";
-import React from "react";
-import { Tabs } from "expo-router";
+import { View, Text, Image, Animated } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { Tabs, useNavigation } from "expo-router";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
+import { NavigationProp } from "@react-navigation/native";
 
-// Function to render the tab icon
-function TabIcon({ focused, icon, title }: any) {
-  if (focused) {
-    return (
-      <ImageBackground
-        source={images.highlight}
-        className="flex flex-row w-full flex-1 min-w-[112px] min-h-16 mt-4 justify-center items-center rounded-full overflow-hidden"
-      >
-        <Image source={icon} tintColor="#151312" className="size-5" />
-        <Text className="text-secondary text-base font-semibold ml-2">
-          {title}
-        </Text>
-      </ImageBackground>
-    );
-  }
+// Define types for the tab icon props
+type TabIconProps = {
+  focused: boolean;
+  icon: any;
+  title: string;
+};
+
+// Function to render the tab icon - simplified for better performance
+function TabIcon({ focused, icon, title }: TabIconProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (focused) {
+      // Simpler animation
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Simpler animation
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [focused, opacityAnim]);
 
   return (
-    <View className="size-full justify-center items-center mt-4 rounded-full">
-      <Image source={icon} tintColor="#A8B5DB" className="size-5" />
+    <View className="size-full justify-center items-center">
+      {/* Background highlight with animation */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          opacity: opacityAnim,
+        }}
+      >
+        <Image
+          source={images.highlight}
+          className="w-full h-full rounded-full"
+          resizeMode="cover"
+        />
+      </Animated.View>
+
+      {/* Tab icon only */}
+      <Image
+        source={icon}
+        tintColor={focused ? "#151312" : "#A8B5DB"}
+        className="size-5"
+        resizeMode="contain"
+      />
     </View>
   );
 }
 
-const _layout = () => {
+const Layout = () => {
+  // Reference to hold active tab name
+  const activeTabRef = useRef("");
+  const navigation = useNavigation() as any;
+
+  // Function to handle tab press - Scrolls to top if already on selected tab
+  const handleTabPress = (route: string) => {
+    if (activeTabRef.current === route) {
+      // Get the current screen and scroll to top
+      const currentScreen = navigation
+        .getState()
+        ?.routes.find((r: any) => r.name === route);
+
+      if (
+        currentScreen &&
+        currentScreen.state &&
+        currentScreen.state.index === 0
+      ) {
+        // Scroll to top logic - using event emission to be caught by the page
+        navigation.emit({
+          type: "tabPress",
+          target: currentScreen.key,
+          canPreventDefault: true,
+          data: { scrollToTop: true },
+        });
+      }
+    }
+
+    // Update the active tab reference
+    activeTabRef.current = route;
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -37,9 +105,11 @@ const _layout = () => {
           height: "100%",
           justifyContent: "center",
           alignItems: "center",
+          paddingBottom: 0,
         },
         tabBarStyle: {
-          backgroundColor: "#0F0D23",
+          backgroundColor: "rgba(15, 13, 35, 0.5)",
+          backdropFilter: "blur(10px)",
           borderRadius: 50,
           marginHorizontal: 20,
           marginBottom: 36,
@@ -47,8 +117,13 @@ const _layout = () => {
           position: "absolute",
           overflow: "hidden",
           borderWidth: 1,
-          borderColor: "#0F0D23",
+          borderColor: "rgba(168, 181, 219, 0.2)",
+          alignItems: "center",
+          paddingVertical: 0,
         },
+        tabBarActiveTintColor: "#FFFFFF",
+        tabBarInactiveTintColor: "#A8B5DB",
+        animation: "fade",
       }}
     >
       <Tabs.Screen
@@ -57,8 +132,15 @@ const _layout = () => {
           title: "Movies",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} title="Movies" />
+            <TabIcon
+              focused={focused}
+              icon={icons.movie || icons.home}
+              title="Movies"
+            />
           ),
+        }}
+        listeners={{
+          tabPress: () => handleTabPress("index"),
         }}
       />
       <Tabs.Screen
@@ -67,8 +149,15 @@ const _layout = () => {
           title: "TV Shows",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.search} title="TV" />
+            <TabIcon
+              focused={focused}
+              icon={icons.tv || icons.search}
+              title="TV"
+            />
           ),
+        }}
+        listeners={{
+          tabPress: () => handleTabPress("tv"),
         }}
       />
       <Tabs.Screen
@@ -80,6 +169,9 @@ const _layout = () => {
             <TabIcon focused={focused} icon={icons.person} title="Profile" />
           ),
         }}
+        listeners={{
+          tabPress: () => handleTabPress("profile"),
+        }}
       />
       <Tabs.Screen
         name="search"
@@ -89,6 +181,9 @@ const _layout = () => {
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} icon={icons.search} title="Search" />
           ),
+        }}
+        listeners={{
+          tabPress: () => handleTabPress("search"),
         }}
       />
       <Tabs.Screen
@@ -100,9 +195,12 @@ const _layout = () => {
             <TabIcon focused={focused} icon={icons.save} title="Saved" />
           ),
         }}
+        listeners={{
+          tabPress: () => handleTabPress("saved"),
+        }}
       />
     </Tabs>
   );
 };
 
-export default _layout;
+export default Layout;
