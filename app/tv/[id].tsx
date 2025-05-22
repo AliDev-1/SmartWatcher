@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Modal,
   ScrollView,
   Pressable,
+  FlatList,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -40,6 +41,9 @@ import {
   fetchTVShowWatchProviders,
   fetchTVShowReviews,
   fetchTVShowCredits,
+  fetchTVShowSeasons,
+  fetchTVSeasonDetails,
+  fetchTVEpisodeDetails,
 } from "@/services/api";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import WatchlistButton from "@/components/WatchlistButton";
@@ -86,6 +90,30 @@ interface Review {
   created_at: string;
   updated_at: string;
   url: string;
+}
+
+// Interface for TV season
+interface TVSeason {
+  id: number;
+  name: string;
+  season_number: number;
+  episode_count: number;
+  poster_path: string | null;
+  air_date: string | null;
+  overview: string;
+}
+
+// Interface for TV episode
+interface TVEpisode {
+  id: number;
+  name: string;
+  overview: string;
+  air_date: string;
+  episode_number: number;
+  season_number: number;
+  still_path: string | null;
+  vote_average: number;
+  runtime: number | null;
 }
 
 // Country list for region selection
@@ -236,7 +264,14 @@ const Header = ({ scrollY, tvShow }) => {
 };
 
 // Tabs Component
-const tabs = ["Details", "Cast & Crew", "Reviews", "Videos", "Where to Watch"];
+const tabs = [
+  "Details",
+  "Cast & Crew",
+  "Seasons",
+  "Reviews",
+  "Videos",
+  "Where to Watch",
+];
 
 const Tabs = ({ scrollY, activeTab, setActiveTab }) => {
   const stylez = useAnimatedStyle(() => {
@@ -710,6 +745,285 @@ const CrewCard = ({ person }) => {
   );
 };
 
+// Season Card Component
+const SeasonCard = ({ season, onPress }) => {
+  const cardScale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    cardScale.value = withSpring(0.98);
+  };
+
+  const handlePressOut = () => {
+    cardScale.value = withSpring(1);
+  };
+
+  const animatedCardStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: cardScale.value }],
+    };
+  });
+
+  // Format date if available
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <Animated.View
+      entering={FadeIn.delay(100).springify()}
+      style={[animatedCardStyle, { marginBottom: 16 }]}
+      className="bg-secondary rounded-lg overflow-hidden"
+    >
+      <Pressable
+        onPress={() => onPress(season)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        className="flex-row"
+      >
+        <Image
+          source={{
+            uri: season.poster_path
+              ? `https://image.tmdb.org/t/p/w342${season.poster_path}`
+              : "https://via.placeholder.com/342x513/151312/9CA4AB?text=No+Image",
+          }}
+          className="w-28 h-40 rounded-l-lg"
+          resizeMode="cover"
+        />
+        <View className="p-4 flex-1 justify-between">
+          <View>
+            <Text className="text-white font-bold text-lg" numberOfLines={2}>
+              {season.name}
+            </Text>
+            <View className="flex-row items-center mt-1">
+              <Text className="text-text text-sm">
+                {season.episode_count} Episodes • {formatDate(season.air_date)}
+              </Text>
+            </View>
+            {season.overview ? (
+              <Text className="text-text text-sm mt-2" numberOfLines={3}>
+                {season.overview}
+              </Text>
+            ) : (
+              <Text className="text-text text-sm mt-2 italic">
+                No overview available
+              </Text>
+            )}
+          </View>
+          <View className="mt-2">
+            <Text className="text-white text-sm">View Episodes →</Text>
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+// Episode Card Component
+const EpisodeCard = ({ episode, index, onPress }) => {
+  const cardScale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    cardScale.value = withSpring(0.98);
+  };
+
+  const handlePressOut = () => {
+    cardScale.value = withSpring(1);
+  };
+
+  const animatedCardStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: cardScale.value }],
+    };
+  });
+
+  // Format date if available
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <Animated.View
+      entering={SlideInRight.delay(index * 50).springify()}
+      style={[animatedCardStyle, { marginBottom: 12 }]}
+      className="bg-secondary rounded-lg overflow-hidden"
+    >
+      <Pressable
+        onPress={() => onPress(episode)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        className="flex-row"
+      >
+        {episode.still_path ? (
+          <Image
+            source={{
+              uri: `https://image.tmdb.org/t/p/w300${episode.still_path}`,
+            }}
+            className="w-28 h-16 rounded-l-lg"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="w-28 h-16 bg-primary items-center justify-center rounded-l-lg">
+            <Feather name="image" size={24} color={colors.tabText} />
+          </View>
+        )}
+        <View className="p-3 flex-1">
+          <View className="flex-row justify-between items-start">
+            <Text
+              className="text-white font-bold text-base flex-1"
+              numberOfLines={1}
+            >
+              {episode.episode_number}. {episode.name}
+            </Text>
+            {episode.vote_average > 0 && (
+              <View className="flex-row items-center ml-2">
+                <Image source={icons.star} className="w-3 h-3 mr-1" />
+                <Text className="text-text text-xs">
+                  {episode.vote_average.toFixed(1)}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text className="text-text text-xs mt-1">
+            {formatDate(episode.air_date)}
+            {episode.runtime ? ` • ${episode.runtime} min` : ""}
+          </Text>
+          <Text className="text-text text-xs mt-1" numberOfLines={2}>
+            {episode.overview || "No overview available"}
+          </Text>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+};
+
+// Episode Detail Modal
+const EpisodeDetailModal = ({ episode, isVisible, onClose }) => {
+  if (!episode) return null;
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View
+        className="flex-1 justify-end"
+        style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+      >
+        <View className="bg-primary rounded-t-xl max-h-[80%]">
+          <View className="p-4 border-b border-secondary flex-row justify-between items-center">
+            <Text className="text-white font-bold text-lg">
+              Episode Details
+            </Text>
+            <TouchableOpacity onPress={onClose}>
+              <Feather name="x" size={24} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            className="p-4"
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            {episode.still_path && (
+              <Image
+                source={{
+                  uri: `https://image.tmdb.org/t/p/w500${episode.still_path}`,
+                }}
+                className="w-full h-48 rounded-lg mb-4"
+                resizeMode="cover"
+              />
+            )}
+
+            <Text className="text-white font-bold text-xl">
+              {episode.episode_number}. {episode.name}
+            </Text>
+
+            <View className="flex-row items-center mt-2 mb-4">
+              <Text className="text-text text-sm">
+                {formatDate(episode.air_date)}
+                {episode.runtime ? ` • ${episode.runtime} min` : ""}
+                {episode.vote_average > 0
+                  ? ` • Rating: ${episode.vote_average.toFixed(1)}/10`
+                  : ""}
+              </Text>
+            </View>
+
+            <Text className="text-white text-base leading-6 mb-6">
+              {episode.overview || "No overview available for this episode."}
+            </Text>
+
+            {episode.crew && episode.crew.length > 0 && (
+              <View className="mb-4">
+                <Text className="text-white font-bold text-lg mb-2">Crew</Text>
+                <View className="flex-row flex-wrap">
+                  {episode.crew.slice(0, 6).map((person) => (
+                    <View
+                      key={`${person.id}-${person.job}`}
+                      className="bg-secondary p-2 rounded-md mr-2 mb-2"
+                    >
+                      <Text className="text-white text-xs font-bold">
+                        {person.name}
+                      </Text>
+                      <Text className="text-text text-xs">{person.job}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {episode.guest_stars && episode.guest_stars.length > 0 && (
+              <View>
+                <Text className="text-white font-bold text-lg mb-2">
+                  Guest Stars
+                </Text>
+                <View className="flex-row flex-wrap">
+                  {episode.guest_stars.slice(0, 8).map((person) => (
+                    <View
+                      key={`${person.id}-${person.character}`}
+                      className="bg-secondary p-2 rounded-md mr-2 mb-2"
+                    >
+                      <Text className="text-white text-xs font-bold">
+                        {person.name}
+                      </Text>
+                      <Text className="text-text text-xs">
+                        {person.character || "Unknown Role"}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 // Main Component
 const TVShowDetails = () => {
   const { id } = useLocalSearchParams();
@@ -718,6 +1032,11 @@ const TVShowDetails = () => {
   const [regionModalVisible, setRegionModalVisible] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [seasonEpisodes, setSeasonEpisodes] = useState([]);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(false);
+  const [selectedEpisode, setSelectedEpisode] = useState(null);
+  const [episodeModalVisible, setEpisodeModalVisible] = useState(false);
   const scrollY = useSharedValue(0);
 
   const { data: tvShow, loading } = useFetch(() =>
@@ -739,6 +1058,50 @@ const TVShowDetails = () => {
   const { data: credits, loading: creditsLoading } = useFetch(() =>
     fetchTVShowCredits(id as string)
   );
+
+  const { data: seasons, loading: seasonsLoading } = useFetch(() =>
+    fetchTVShowSeasons(id as string)
+  );
+
+  const { data: seasonEpisodesData, loading: seasonEpisodesLoading } = useFetch(
+    () => fetchTVSeasonDetails(id as string, selectedSeason?.season_number)
+  );
+
+  const fetchSeasonEpisodes = async (season) => {
+    if (!season) return;
+
+    setLoadingEpisodes(true);
+    try {
+      const data = await fetchTVSeasonDetails(
+        id as string,
+        season.season_number
+      );
+      setSeasonEpisodes(data.episodes || []);
+    } catch (error) {
+      console.error("Error fetching season episodes:", error);
+    } finally {
+      setLoadingEpisodes(false);
+    }
+  };
+
+  const handleSeasonPress = (season) => {
+    setSelectedSeason(season);
+    fetchSeasonEpisodes(season);
+  };
+
+  const handleEpisodePress = (episode) => {
+    setSelectedEpisode(episode);
+    setEpisodeModalVisible(true);
+  };
+
+  const closeEpisodeModal = () => {
+    setEpisodeModalVisible(false);
+  };
+
+  const backToSeasons = () => {
+    setSelectedSeason(null);
+    setSeasonEpisodes([]);
+  };
 
   const onScroll = useAnimatedScrollHandler((ev) => {
     scrollY.value = ev.contentOffset.y;
@@ -840,6 +1203,12 @@ const TVShowDetails = () => {
         onClose={() => setRegionModalVisible(false)}
         selectedRegion={selectedRegion}
         onSelectRegion={setSelectedRegion}
+      />
+
+      <EpisodeDetailModal
+        episode={selectedEpisode}
+        isVisible={episodeModalVisible}
+        onClose={closeEpisodeModal}
       />
 
       <Animated.ScrollView
@@ -958,6 +1327,91 @@ const TVShowDetails = () => {
         )}
 
         {activeTab === 2 && (
+          // Seasons Tab
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
+            {selectedSeason ? (
+              // Show episodes of selected season
+              <>
+                <View className="flex-row justify-between items-center mb-4">
+                  <TouchableOpacity
+                    onPress={backToSeasons}
+                    className="flex-row items-center"
+                  >
+                    <Feather
+                      name="chevron-left"
+                      size={20}
+                      color={colors.white}
+                    />
+                    <Text className="text-white ml-1">Back to Seasons</Text>
+                  </TouchableOpacity>
+                  <Text className="text-white font-bold text-lg">
+                    {selectedSeason.name}
+                  </Text>
+                </View>
+
+                {loadingEpisodes ? (
+                  <View className="items-center justify-center py-10">
+                    <ActivityIndicator color={colors.accent} size="large" />
+                    <Text className="text-tabText text-base mt-3">
+                      Loading episodes...
+                    </Text>
+                  </View>
+                ) : seasonEpisodes.length === 0 ? (
+                  <View className="items-center justify-center py-10">
+                    <Feather name="film" size={48} color={colors.tabText} />
+                    <Text className="text-tabText text-base mt-3 text-center">
+                      No episode information available
+                    </Text>
+                  </View>
+                ) : (
+                  seasonEpisodes.map((episode, index) => (
+                    <EpisodeCard
+                      key={episode.id}
+                      episode={episode}
+                      index={index}
+                      onPress={handleEpisodePress}
+                    />
+                  ))
+                )}
+              </>
+            ) : (
+              // Show all seasons
+              <>
+                <Text className="text-white font-bold text-xl mb-4">
+                  Seasons
+                </Text>
+
+                {seasonsLoading ? (
+                  <View className="items-center justify-center py-10">
+                    <ActivityIndicator color={colors.accent} size="large" />
+                    <Text className="text-tabText text-base mt-3">
+                      Loading seasons...
+                    </Text>
+                  </View>
+                ) : !seasons?.seasons || seasons.seasons.length === 0 ? (
+                  <View className="items-center justify-center py-10">
+                    <Feather name="calendar" size={48} color={colors.tabText} />
+                    <Text className="text-tabText text-base mt-3 text-center">
+                      No season information available
+                    </Text>
+                  </View>
+                ) : (
+                  seasons.seasons
+                    .filter((season) => season.season_number > 0) // Filter out specials (usually season 0)
+                    .map((season) => (
+                      <SeasonCard
+                        key={season.id}
+                        season={season}
+                        onPress={handleSeasonPress}
+                      />
+                    ))
+                )}
+              </>
+            )}
+          </View>
+        )}
+
+        {activeTab === 3 && (
           // Reviews Tab
           <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {reviewsLoading ? (
@@ -1001,7 +1455,7 @@ const TVShowDetails = () => {
           </View>
         )}
 
-        {activeTab === 3 && (
+        {activeTab === 4 && (
           // Videos Tab
           <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {videosLoading ? (
@@ -1066,7 +1520,7 @@ const TVShowDetails = () => {
           </View>
         )}
 
-        {activeTab === 4 && (
+        {activeTab === 5 && (
           // Where to Watch Tab
           <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
             {providersLoading ? (

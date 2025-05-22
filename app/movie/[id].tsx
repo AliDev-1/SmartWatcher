@@ -40,6 +40,7 @@ import {
   fetchMovieVideos,
   fetchMovieWatchProviders,
   fetchMovieReviews,
+  fetchMovieRecommendations,
 } from "@/services/api";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import WatchlistButton from "@/components/WatchlistButton";
@@ -160,6 +161,16 @@ interface Review {
   created_at: string;
   updated_at: string;
   url: string;
+}
+
+// Interface for recommendations
+interface MovieRecommendation {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  release_date: string;
+  vote_average: number;
 }
 
 // Country list for region selection
@@ -293,7 +304,14 @@ const Header = ({ scrollY, movie }: HeaderProps) => {
 };
 
 // Tabs Component
-const tabs = ["Details", "Cast & Crew", "Videos", "Where to Watch", "Reviews"];
+const tabs = [
+  "Details",
+  "Cast & Crew",
+  "Videos",
+  "Where to Watch",
+  "Reviews",
+  "Recommendations",
+];
 
 const Tabs = ({ scrollY, activeTab, setActiveTab }: TabsProps) => {
   const stylez = useAnimatedStyle(() => {
@@ -783,6 +801,87 @@ const RegionModal = ({
   );
 };
 
+// Movie Recommendation Card
+const MovieRecommendationCard = ({ movie, index }) => {
+  const router = useRouter();
+  const cardScale = useSharedValue(1);
+
+  // Calculate position in grid
+  const row = Math.floor(index / 3);
+  const col = index % 3;
+
+  const handlePressIn = () => {
+    cardScale.value = withSpring(0.95);
+  };
+
+  const handlePressOut = () => {
+    cardScale.value = withSpring(1);
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: cardScale.value }],
+    };
+  });
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return dateString.split("-")[0]; // Just get the year
+  };
+
+  return (
+    <Animated.View
+      entering={FadeIn.delay(index * 100).springify()}
+      style={[
+        animatedStyle,
+        {
+          width: (width - 58) / 3,
+          marginBottom: 16,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => router.push(`/movie/${movie.id}`)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <View className="rounded-lg overflow-hidden border border-secondary/40">
+          <Image
+            source={{
+              uri: movie.poster_path
+                ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+                : "https://via.placeholder.com/342x513/151312/9CA4AB?text=No+Image",
+            }}
+            className="w-full aspect-[2/3]"
+            resizeMode="cover"
+          />
+        </View>
+        <View className="mt-2">
+          <Text className="text-white text-xs font-bold" numberOfLines={2}>
+            {movie.title}
+          </Text>
+          <View className="flex-row items-center mt-1">
+            {movie.vote_average > 0 && (
+              <View className="flex-row items-center">
+                <Image source={icons.star} className="w-3 h-3" />
+                <Text className="text-text text-xs ml-1">
+                  {movie.vote_average.toFixed(1)}
+                </Text>
+              </View>
+            )}
+            {movie.release_date && (
+              <Text className="text-text text-xs ml-2">
+                {formatDate(movie.release_date)}
+              </Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 // Main Component
 const Details = () => {
   const { id } = useLocalSearchParams();
@@ -811,6 +910,10 @@ const Details = () => {
 
   const { data: reviews, loading: reviewsLoading } = useFetch(() =>
     fetchMovieReviews(id as string)
+  );
+
+  const { data: recommendations, loading: recommendationsLoading } = useFetch(
+    () => fetchMovieRecommendations(id as string)
   );
 
   const onScroll = useAnimatedScrollHandler((ev) => {
@@ -1276,6 +1379,66 @@ const Details = () => {
                     {reviews.total_results !== 1 ? "s" : ""} in total
                   </Text>
                 </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === 5 && (
+          // Recommendations Tab
+          <View className="px-5 py-4 bg-primary/90 rounded-lg mx-2 my-1">
+            <Text className="text-white font-bold text-xl mb-5">
+              You May Also Like
+            </Text>
+
+            {recommendationsLoading ? (
+              <View className="items-center justify-center pt-10">
+                <ActivityIndicator color={colors.accent} size="large" />
+              </View>
+            ) : !recommendations?.results ||
+              recommendations.results.length === 0 ? (
+              <View className="items-center justify-center pt-10">
+                <Feather name="film" size={48} color={colors.tabText} />
+                <Text className="text-tabText text-base mt-3">
+                  No recommendations available
+                </Text>
+              </View>
+            ) : (
+              <View>
+                {[0, 1, 2, 3].map((row) => (
+                  <View
+                    key={`row-${row}`}
+                    className="flex-row"
+                    style={{
+                      marginBottom: 4,
+                      justifyContent: "flex-start",
+                      gap: 8,
+                    }}
+                  >
+                    {[0, 1, 2].map((col) => {
+                      const index = row * 3 + col;
+                      if (
+                        index < recommendations.results.length &&
+                        index < 12
+                      ) {
+                        return (
+                          <MovieRecommendationCard
+                            key={recommendations.results[index].id}
+                            movie={recommendations.results[index]}
+                            index={index}
+                          />
+                        );
+                      }
+                      // Return empty placeholder if we don't have enough movies to fill the grid
+                      return (
+                        <View
+                          key={`empty-${row}-${col}`}
+                          style={{ width: (width - 58) / 3 }}
+                        />
+                      );
+                    })}
+                  </View>
+                ))}
               </View>
             )}
           </View>

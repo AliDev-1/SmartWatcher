@@ -140,6 +140,43 @@ interface TVShowDetails {
   episode_run_time: number[];
 }
 
+// TV Season and Episode Types
+interface TVSeason {
+  id: number;
+  air_date: string;
+  episodes: TVEpisode[];
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  season_number: number;
+}
+
+interface TVEpisode {
+  id: number;
+  name: string;
+  overview: string;
+  air_date: string;
+  episode_number: number;
+  season_number: number;
+  still_path: string | null;
+  vote_average: number;
+  vote_count: number;
+  runtime: number | null;
+  crew: {
+    id: number;
+    name: string;
+    job: string;
+    department: string;
+    profile_path: string | null;
+  }[];
+  guest_stars: {
+    id: number;
+    name: string;
+    character: string;
+    profile_path: string | null;
+  }[];
+}
+
 // Person Types
 interface PersonDetails {
   id: number;
@@ -746,6 +783,119 @@ export const fetchMostPopularTVShows = async (): Promise<TVShow[]> => {
     return data.results;
   } catch (error) {
     console.error("Error fetching most popular TV shows:", error);
+    throw error;
+  }
+};
+
+export const fetchTVShowSeasons = async (
+  tvId: string
+): Promise<{
+  seasons: {
+    id: number;
+    name: string;
+    season_number: number;
+    episode_count: number;
+    poster_path: string | null;
+    air_date: string | null;
+    overview: string;
+  }[];
+}> => {
+  try {
+    // We can get the seasons from the TV show details endpoint
+    const response = await fetch(`${TMDB_CONFIG.BASE_URL}/tv/${tvId}`, {
+      method: "GET",
+      headers: TMDB_CONFIG.headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch TV seasons: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { seasons: data.seasons };
+  } catch (error) {
+    console.error("Error fetching TV seasons:", error);
+    throw error;
+  }
+};
+
+export const fetchTVSeasonDetails = async (
+  tvId: string,
+  seasonNumber: number
+): Promise<TVSeason> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/tv/${tvId}/season/${seasonNumber}`,
+      {
+        method: "GET",
+        headers: TMDB_CONFIG.headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch TV season details: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching TV season details:", error);
+    throw error;
+  }
+};
+
+export const fetchTVEpisodeDetails = async (
+  tvId: string,
+  seasonNumber: number,
+  episodeNumber: number
+): Promise<TVEpisode> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}`,
+      {
+        method: "GET",
+        headers: TMDB_CONFIG.headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch TV episode details: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching TV episode details:", error);
+    throw error;
+  }
+};
+
+export const fetchMovieRecommendations = async (
+  movieId: string
+): Promise<{ results: Movie[] }> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}/recommendations`,
+      {
+        method: "GET",
+        headers: TMDB_CONFIG.headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch movie recommendations: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching movie recommendations:", error);
     throw error;
   }
 };
