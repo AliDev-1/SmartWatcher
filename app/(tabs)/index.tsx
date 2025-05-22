@@ -139,12 +139,7 @@ class Index extends React.Component {
         <Image source={icons.logo} className="w-11 h-12 mt-20 mb-5 mx-auto" />
 
         <View className="mt-5 px-5">
-          <SearchBar
-            onPress={() => {
-              this.router.push("/search");
-            }}
-            placeholder="Search for a movie"
-          />
+          <SearchBar />
         </View>
 
         {/* Now Playing Movies */}

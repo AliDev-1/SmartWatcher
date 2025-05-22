@@ -4,16 +4,25 @@ import { Tabs, useNavigation } from "expo-router";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { NavigationProp } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 
 // Define types for the tab icon props
 type TabIconProps = {
   focused: boolean;
   icon: any;
   title: string;
+  isCustomIcon?: boolean;
+  customIconName?: string;
 };
 
 // Function to render the tab icon - simplified for better performance
-function TabIcon({ focused, icon, title }: TabIconProps) {
+function TabIcon({
+  focused,
+  icon,
+  title,
+  isCustomIcon,
+  customIconName,
+}: TabIconProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
@@ -36,30 +45,52 @@ function TabIcon({ focused, icon, title }: TabIconProps) {
   }, [focused, opacityAnim]);
 
   return (
-    <View className="size-full justify-center items-center">
+    <View
+      style={{
+        width: "100%",
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+        overflow: "visible",
+        paddingTop: 10,
+      }}
+    >
       {/* Background highlight with animation */}
       <Animated.View
         style={{
           position: "absolute",
-          width: "100%",
-          height: "100%",
+          width: 36,
+          height: 36,
+          borderRadius: 18,
           opacity: opacityAnim,
+          zIndex: -1,
+          transform: [{ translateY: 5 }],
         }}
       >
         <Image
           source={images.highlight}
-          className="w-full h-full rounded-full"
+          style={{ width: "100%", height: "100%", borderRadius: 999 }}
           resizeMode="cover"
         />
       </Animated.View>
 
-      {/* Tab icon only */}
-      <Image
-        source={icon}
-        tintColor={focused ? "#151312" : "#A8B5DB"}
-        className="size-5"
-        resizeMode="contain"
-      />
+      {/* Tab icon */}
+      {isCustomIcon && customIconName ? (
+        <Feather
+          name={customIconName as any}
+          size={20}
+          color={focused ? "#151312" : "#A8B5DB"}
+          style={{ zIndex: 1 }}
+        />
+      ) : (
+        <Image
+          source={icon}
+          tintColor={focused ? "#151312" : "#A8B5DB"}
+          style={{ width: 20, height: 20, zIndex: 1 }}
+          resizeMode="contain"
+        />
+      )}
     </View>
   );
 }
@@ -102,28 +133,43 @@ const Layout = () => {
         tabBarShowLabel: false,
         tabBarItemStyle: {
           width: "100%",
-          height: "100%",
+          height: 52,
           justifyContent: "center",
           alignItems: "center",
+          paddingTop: 0,
           paddingBottom: 0,
+          marginTop: 0,
+          marginBottom: 0,
+          overflow: "visible",
+          position: "relative",
+          zIndex: 1,
         },
         tabBarStyle: {
-          backgroundColor: "rgba(15, 13, 35, 0.5)",
+          backgroundColor: "rgba(15, 13, 35, 0.85)",
           backdropFilter: "blur(10px)",
           borderRadius: 50,
           marginHorizontal: 20,
           marginBottom: 36,
           height: 52,
           position: "absolute",
-          overflow: "hidden",
+          overflow: "visible",
           borderWidth: 1,
           borderColor: "rgba(168, 181, 219, 0.2)",
           alignItems: "center",
+          justifyContent: "center",
           paddingVertical: 0,
+          paddingTop: 0,
+          paddingBottom: 0,
+          display: "flex",
+          zIndex: 0,
         },
         tabBarActiveTintColor: "#FFFFFF",
         tabBarInactiveTintColor: "#A8B5DB",
         animation: "fade",
+        tabBarIconStyle: {
+          marginTop: 0,
+          paddingTop: 0,
+        },
       }}
     >
       <Tabs.Screen
@@ -161,19 +207,6 @@ const Layout = () => {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.person} title="Profile" />
-          ),
-        }}
-        listeners={{
-          tabPress: () => handleTabPress("profile"),
-        }}
-      />
-      <Tabs.Screen
         name="search"
         options={{
           title: "Search",
@@ -183,20 +216,28 @@ const Layout = () => {
           ),
         }}
         listeners={{
-          tabPress: () => handleTabPress("search"),
+          tabPress: (e) => {
+            handleTabPress("search");
+          },
         }}
       />
       <Tabs.Screen
-        name="saved"
+        name="watchlist"
         options={{
-          title: "Saved",
+          title: "Watchlist",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.save} title="Saved" />
+            <TabIcon
+              focused={focused}
+              icon={null}
+              title="Watchlist"
+              isCustomIcon={true}
+              customIconName="bookmark"
+            />
           ),
         }}
         listeners={{
-          tabPress: () => handleTabPress("saved"),
+          tabPress: () => handleTabPress("watchlist"),
         }}
       />
     </Tabs>

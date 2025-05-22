@@ -42,6 +42,7 @@ import {
   fetchMovieReviews,
 } from "@/services/api";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import WatchlistButton from "@/components/WatchlistButton";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -241,9 +242,21 @@ const Header = ({ scrollY, movie }: HeaderProps) => {
         <Feather name="chevron-left" size={24} color={colors.white} />
       </TouchableOpacity>
 
-      <TouchableOpacity className="absolute top-12 right-5 z-10 bg-black/50 rounded-full p-2">
-        <Feather name="heart" size={24} color={colors.white} />
-      </TouchableOpacity>
+      {movie && (
+        <View className="absolute top-12 right-5 z-10">
+          <WatchlistButton
+            mediaId={movie.id.toString()}
+            mediaType="movie"
+            title={movie.title}
+            posterUrl={
+              movie.poster_path
+                ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                : undefined
+            }
+            year={movie.release_date?.slice(0, 4)}
+          />
+        </View>
+      )}
 
       <Animated.View style={headerTextStyle} className="px-5 pb-8">
         <Text className="text-white font-bold text-4xl" numberOfLines={2}>
@@ -251,25 +264,26 @@ const Header = ({ scrollY, movie }: HeaderProps) => {
         </Text>
 
         <View className="flex-row items-center gap-x-2 mt-2">
+          <Text className="text-white text-sm">{movie?.release_date}</Text>
+          <View className="h-1 w-1 bg-white rounded-full" />
           <Text className="text-white text-sm">
-            {movie?.release_date?.split("-")[0]} • {movie?.runtime}m
+            {movie?.runtime ? `${movie?.runtime} min` : "N/A"}
           </Text>
-
-          <View className="flex-row items-center bg-ratingBox px-2 py-1 rounded-md gap-x-1">
-            <Image source={icons.star} className="size-4" />
-            <Text className="text-white font-bold text-sm">
-              {Math.round(movie?.vote_average ?? 0)}/10
-            </Text>
-          </View>
         </View>
 
-        <View className="flex-row flex-wrap gap-1 mt-2">
-          {movie?.genres?.map((genre) => (
-            <View
-              key={genre.id}
-              className="bg-secondary/70 px-3 py-1 rounded-full"
-            >
-              <Text className="text-accentText text-xs">{genre.name}</Text>
+        <View className="flex-row items-center gap-x-2 mt-3">
+          {movie?.vote_average && (
+            <View className="flex-row items-center gap-x-1">
+              <Image source={icons.star} className="w-4 h-4" />
+              <Text className="text-white text-sm">
+                {movie?.vote_average.toFixed(1)}
+              </Text>
+            </View>
+          )}
+
+          {movie?.genres?.slice(0, 3).map((genre) => (
+            <View key={genre.id} className="px-2 py-1 bg-white/20 rounded-full">
+              <Text className="text-white text-xs">{genre.name}</Text>
             </View>
           ))}
         </View>

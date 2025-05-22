@@ -8,6 +8,7 @@ import play from "@/assets/icons/play.png";
 import arrow from "@/assets/icons/arrow.png";
 import movie from "@/assets/icons/movie.png";
 import tv from "@/assets/icons/tv.png";
+import close from "@/assets/icons/close.png";
 
 export const icons = {
   home,
@@ -20,4 +21,5 @@ export const icons = {
   arrow,
   movie,
   tv,
+  close,
 };

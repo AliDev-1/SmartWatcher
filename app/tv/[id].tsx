@@ -42,6 +42,7 @@ import {
   fetchTVShowCredits,
 } from "@/services/api";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import WatchlistButton from "@/components/WatchlistButton";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -183,9 +184,21 @@ const Header = ({ scrollY, tvShow }) => {
         <Feather name="chevron-left" size={24} color={colors.white} />
       </TouchableOpacity>
 
-      <TouchableOpacity className="absolute top-12 right-5 z-10 bg-black/50 rounded-full p-2">
-        <Feather name="heart" size={24} color={colors.white} />
-      </TouchableOpacity>
+      {tvShow && (
+        <View className="absolute top-12 right-5 z-10">
+          <WatchlistButton
+            mediaId={tvShow.id.toString()}
+            mediaType="tv"
+            title={tvShow.name}
+            posterUrl={
+              tvShow.poster_path
+                ? `https://image.tmdb.org/t/p/w500${tvShow.poster_path}`
+                : undefined
+            }
+            year={tvShow.first_air_date?.slice(0, 4)}
+          />
+        </View>
+      )}
 
       <Animated.View style={headerTextStyle} className="px-5 pb-8">
         <Text className="text-white font-bold text-4xl" numberOfLines={2}>
@@ -199,22 +212,21 @@ const Header = ({ scrollY, tvShow }) => {
               ? ` - ${tvShow?.last_air_date?.split("-")[0]}`
               : " - Present"}
           </Text>
-
-          <View className="flex-row items-center bg-ratingBox px-2 py-1 rounded-md gap-x-1">
-            <Image source={icons.star} className="size-4" />
-            <Text className="text-white font-bold text-sm">
-              {Math.round(tvShow?.vote_average ?? 0)}/10
-            </Text>
-          </View>
         </View>
 
-        <View className="flex-row flex-wrap gap-1 mt-2">
-          {tvShow?.genres?.map((genre: any) => (
-            <View
-              key={genre.id}
-              className="bg-secondary/70 px-3 py-1 rounded-full"
-            >
-              <Text className="text-accentText text-xs">{genre.name}</Text>
+        <View className="flex-row items-center gap-x-2 mt-3">
+          {tvShow?.vote_average && (
+            <View className="flex-row items-center gap-x-1">
+              <Image source={icons.star} className="w-4 h-4" />
+              <Text className="text-white text-sm">
+                {tvShow?.vote_average.toFixed(1)}
+              </Text>
+            </View>
+          )}
+
+          {tvShow?.genres?.slice(0, 3).map((genre) => (
+            <View key={genre.id} className="px-2 py-1 bg-white/20 rounded-full">
+              <Text className="text-white text-xs">{genre.name}</Text>
             </View>
           ))}
         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Dimensions,
   StyleSheet,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -153,9 +153,15 @@ const Search = () => {
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { autoFocus } = useLocalSearchParams<{ autoFocus: string }>();
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollY = useSharedValue(0);
+
+  // Log the autoFocus param to help with debugging
+  useEffect(() => {
+    console.log("Search page mounted with autoFocus:", autoFocus);
+  }, [autoFocus]);
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -208,7 +214,7 @@ const Search = () => {
               `📊 Found ${data.results?.length || 0} results for "${title}"`
             );
             if (data.results && data.results.length > 0) {
-              allResults.push(...data.results.slice(0, 2));
+              allResults.push(...data.results.slice(0, 3));
             }
           })
           .catch((err) =>
@@ -233,7 +239,7 @@ const Search = () => {
       uniqueResults.sort((a, b) => b.popularity - a.popularity);
 
       // Take top results
-      const finalResults = uniqueResults.slice(0, 12);
+      const finalResults = uniqueResults.slice(0, 20);
       console.log(`📋 Final results count: ${finalResults.length}`);
       setSearchResults(finalResults);
 
@@ -255,7 +261,7 @@ const Search = () => {
     }
   };
 
-  const onScroll = useAnimatedScrollHandler((e) => {
+  const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y / _itemFullSize;
   });
 
@@ -269,61 +275,67 @@ const Search = () => {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "transparent" }}>
-      <AnimatedBackground
-        count={7}
-        hue="blue"
-        intensity={40}
-        duration={30000}
-      />
-      <View className="px-5 pt-20 flex-1">
+    <View className="flex-1 bg-dark-100">
+      <AnimatedBackground />
+      <View className="px-5 pt-20 pb-4">
         <View className="w-full flex-row justify-center items-center mb-5">
-          <Image source={icons.logo} className="w-12 h-10" />
+          <Image source={icons.logo} className="w-11 h-12 mb-5 mx-auto" />
         </View>
 
         <SearchBar
-          placeholder="Describe any movie or show you want to find..."
           value={searchQuery}
           onChangeText={handleSearch}
+          isSearchPage={true}
         />
+      </View>
 
-        {loading && (
-          <ActivityIndicator size="large" color="#AB8BFF" className="my-8" />
-        )}
+      {loading && (
+        <View className="flex-1 justify-center items-center mt-10">
+          <ActivityIndicator size="large" color="#AB8BFF" />
+          <Text className="text-white mt-4">
+            Searching for the perfect match...
+          </Text>
+        </View>
+      )}
 
-        {error && (
-          <Text className="text-red-500 my-3">Error: {error.message}</Text>
-        )}
+      {error && (
+        <View className="flex-1 justify-center items-center mt-10">
+          <Text className="text-white">{error.message}</Text>
+        </View>
+      )}
 
-        {!loading && searchResults.length > 0 && (
-          <Text className="text-xl text-white font-bold mb-2">Results</Text>
-        )}
+      {!loading && !error && searchResults.length === 0 && searchQuery && (
+        <View className="flex-1 justify-center items-center mt-10">
+          <Image
+            source={images.emptyState}
+            className="w-40 h-40 opacity-50"
+            resizeMode="contain"
+          />
+          <Text className="text-white text-center mt-4">
+            No results found for "{searchQuery}"
+          </Text>
+        </View>
+      )}
 
+      {!loading && !error && searchResults.length > 0 && (
         <Animated.FlatList
           data={searchResults}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{
-            gap: _spacing * 2,
-            paddingHorizontal: _spacing * 2,
-            paddingTop: _spacing,
+            padding: _spacing * 2,
+            paddingTop: _spacing * 4,
             paddingBottom: (height - _itemSize) / 2,
           }}
-          onScroll={onScroll}
-          scrollEventThrottle={1000 / 60}
-          snapToInterval={_itemFullSize}
-          decelerationRate="fast"
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
           renderItem={({ item, index }) => (
             <AnimatedCard item={item} index={index} scrollY={scrollY} />
           )}
-          ListEmptyComponent={
-            !loading && searchQuery.trim() !== "" && !error ? (
-              <Text className="text-center text-gray-500 my-8">
-                No movies found. Try a different description.
-              </Text>
-            ) : null
-          }
+          snapToInterval={_itemFullSize}
+          decelerationRate="fast"
+          showsVerticalScrollIndicator={false}
         />
-      </View>
+      )}
     </View>
   );
 };
